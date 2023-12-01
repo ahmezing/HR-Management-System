@@ -1,0 +1,299 @@
+import { Button, Table, Pagination, Modal } from "@mantine/core";
+import { useState, useEffect } from "react";
+import { useSession } from "@supabase/auth-helpers-react";
+import { notifications } from "@mantine/notifications";
+import { Employee } from "@/models/Employee";
+import { useDisclosure } from "@mantine/hooks";
+import { DatePickerInput } from "@mantine/dates";
+import { NumberInput, TextInput } from "@mantine/core";
+import { updateEmployee } from "@/server/employee";
+
+export default function EmployeesTable({
+  employees,
+  fetchEmployees,
+}: {
+  employees: Employee[];
+  fetchEmployees: () => void;
+}) {
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [employeeSince, setEmployeeSince] = useState<Date | null>(null);
+  const [idNumber, setIdNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [idExpiryDate, setIdExpiryDate] = useState<Date | null>(null);
+  const [salary, setSalary] = useState<number>(0);
+  const [position, setPosition] = useState("");
+  const [contractExpiry, setContractExpiry] = useState<Date | null>(null);
+
+  const session = useSession();
+  const [notification, setNotification] = useState({
+    title: "",
+    message: "",
+    color: "",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showNotification, setShowNotification] = useState(false);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(employees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEmployees = employees.slice(startIndex, endIndex);
+  const [opened, { open, close }] = useDisclosure(false);
+
+  const openEditModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    open();
+  };
+
+  async function confirmEdit(employee: Employee) {
+    const updatedEmployee: Partial<Employee> = { id: employee.id }; // Create a partial object to hold updated values
+
+    // Check each field and update the employee object if the value is not null or empty
+    if (firstName && firstName !== "") updatedEmployee.first_name = firstName;
+    if (lastName && lastName !== "") updatedEmployee.last_name = lastName;
+    if (employeeSince) updatedEmployee.employee_since = employeeSince;
+    if (idNumber && idNumber !== "") updatedEmployee.id_number = idNumber;
+    if (dateOfBirth) updatedEmployee.date_of_birth = dateOfBirth;
+    if (idExpiryDate) updatedEmployee.id_expiry_date = idExpiryDate;
+    if (salary && salary !== 0) updatedEmployee.salary = salary;
+    if (position && position !== "") updatedEmployee.position = position;
+    if (contractExpiry) updatedEmployee.contract_expiry = contractExpiry;
+
+    const changes: string[] = [];
+    // Compare the properties of updatedEmployee and employee to identify changes
+    for (const key in updatedEmployee) {
+      if (
+        updatedEmployee[key as keyof Partial<Employee>] !==
+        employee[key as keyof Employee]
+      ) {
+        changes.push(
+          `${key}: ${employee[key as keyof Employee]} → ${
+            updatedEmployee[key as keyof Partial<Employee>]
+          }`
+        );
+      }
+    }
+
+    if (changes.length === 0) {
+      console.log("No changes were made");
+      setNotification({
+        title: "Error",
+        message: "No changes were made",
+        color: "yellow",
+      });
+    } else {
+      console.log(`Changes made on ${new Date().toLocaleDateString()}:`);
+      changes.forEach((change) => console.log(change));
+
+      // Merge the updated fields into a new object and update selectedEmployee
+      const updatedSelectedEmployee = {
+        ...selectedEmployee!,
+        ...updatedEmployee,
+      };
+
+      // Update the selectedEmployee and wait for the updateEmployee function to complete
+      await updateEmployee(updatedSelectedEmployee);
+      setSelectedEmployee(updatedSelectedEmployee);
+
+      setNotification({
+        title: "Success",
+        message: "Employee updated successfully",
+        color: "blue",
+      });
+    }
+
+    setShowNotification(true);
+    close();
+  }
+
+  useEffect(() => {
+    // Fetch employees
+    fetchEmployees();
+    console.log("Employees fetched");
+  }, [selectedEmployee]);
+
+  if (showNotification) {
+    console.log("Notification shown");
+    notifications.show({
+      title: notification.title,
+      message: notification.message,
+      color: notification.color,
+    });
+    setShowNotification(false);
+  }
+
+  return (
+    <div className="bg-white">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div
+          className="mx-auto mt-5 max-w-2xl grid-cols-1 gap-y-16 border-t border-gray-200 pt-2 sm:mt-4 sm:pt-8 lg:mx-0 lg:max-w-none
+              w-full"
+        >
+          <Table striped highlightOnHover withBorder withColumnBorders>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Salary</th>
+                <th>Nationality</th>
+                <th>Date of Birth</th>
+                <th>Employee Since</th>
+                <th>ID Number</th>
+                <th>Contract Expiry Date</th>
+                <th>ID Expiry Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedEmployees.map((employee) => (
+                <tr key={employee.id}>
+                  <td>{employee.first_name + " " + employee.last_name}</td>
+                  <td>{employee.position}</td>
+                  <td>{employee.salary + " SAR"}</td>
+                  <td>{employee.nationality}</td>
+                  <td>{employee.date_of_birth.toLocaleString()}</td>
+                  <td>{employee.employee_since.toLocaleString()}</td>
+                  <td>{employee.id_number}</td>
+                  <td>{employee.contract_expiry.toLocaleString()}</td>
+                  <td>{employee.id_expiry_date.toLocaleString()}</td>
+
+                  <td>
+                    <div className="flex items-center space-x-4">
+                      <Button
+                        onClick={() => openEditModal(employee)}
+                        className="
+                        bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded
+                    "
+                      >
+                        Edit
+                      </Button>
+                      {session?.user?.user_metadata?.is_admin === true && (
+                        <Button
+                          onClick={() => {}}
+                          className="
+                            bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded
+                        "
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <Modal
+            opened={opened}
+            onClose={close}
+            title="Update Employee"
+            centered
+          >
+            <TextInput
+              label="First Name"
+              placeholder={selectedEmployee?.first_name}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+
+            <TextInput
+              label="Last Name"
+              placeholder={selectedEmployee?.last_name}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setLastName(e.target.value)}
+            />
+
+            <TextInput
+              label="ID Number"
+              placeholder={selectedEmployee?.id_number}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setIdNumber(e.target.value)}
+            />
+
+            <TextInput
+              label="Position"
+              placeholder={selectedEmployee?.position}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setPosition(e.target.value)}
+            />
+
+            <DatePickerInput
+              label="Date of Birth"
+              placeholder={selectedEmployee?.date_of_birth.toLocaleString()}
+              variant="filled"
+              className="mb-4"
+              onChange={(date) => {
+                setDateOfBirth(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="Employee Since"
+              placeholder={selectedEmployee?.employee_since.toLocaleString()}
+              variant="filled"
+              className="mb-4"
+              onChange={(date) => {
+                setEmployeeSince(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="ID Expiry Date"
+              placeholder={selectedEmployee?.id_expiry_date.toLocaleString()}
+              variant="filled"
+              className="mb-4"
+              onChange={(date) => {
+                setIdExpiryDate(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="Contract Expiry Date"
+              placeholder={selectedEmployee?.contract_expiry.toLocaleString()}
+              variant="filled"
+              className="mb-4"
+              onChange={(date) => {
+                setContractExpiry(date);
+              }}
+            />
+
+            <NumberInput
+              label="Salary"
+              placeholder={selectedEmployee?.salary.toLocaleString()}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setSalary(Number(e))}
+            />
+
+            <Button
+              onClick={() => confirmEdit(selectedEmployee!)}
+              className="
+                bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded
+            "
+            >
+              Confirm
+            </Button>
+          </Modal>
+
+          <div className="flex justify-center mt-4">
+            <Pagination
+              total={totalPages}
+              value={currentPage}
+              onChange={setCurrentPage}
+              size="sm"
+              radius="md"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
