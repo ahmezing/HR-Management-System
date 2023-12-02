@@ -4,14 +4,19 @@ import { useEffect, useState } from "react";
 import router from "next/router";
 import { logout } from "../../server/auth";
 import { createStyles, Navbar, Group, getStylesRef, rem } from "@mantine/core";
-import { IconHome2, IconList, IconUsersGroup, IconLogout } from "@tabler/icons-react";
+import {
+  IconHome2,
+  IconList,
+  IconUsersGroup,
+  IconLogout,
+} from "@tabler/icons-react";
 import { useSession } from "@supabase/auth-helpers-react";
 
 const useStyles = createStyles((theme) => ({
   navbar: {
     backgroundColor: theme.fn.variant({
       variant: "filled",
-      color: 'violet'
+      color: "violet",
     }).background,
     position: "sticky", // Add this line
     top: 0, // Add this line
@@ -62,7 +67,7 @@ const useStyles = createStyles((theme) => ({
 
     "&:hover": {
       backgroundColor: theme.fn.lighten(
-        theme.fn.variant({ variant: "filled", color: theme.primaryColor })
+        theme.fn.variant({ variant: "filled", color: 'violet' })
           .background!,
         0.1
       ),
@@ -108,10 +113,11 @@ export function NavbarSimpleColored() {
     }
   };
 
-  const data = [{ link: "/", label: "Home", icon: IconHome2 },
-                { link: "/admin/assistants", label: "Assistants", icon: IconUsersGroup },
-                { link: "/admin/logs", label: "Logs", icon: IconList}
-];
+  const data = [
+    { link: "/admin", label: "Home", icon: IconHome2 },
+    { link: "/admin/assistants", label: "Assistants", icon: IconUsersGroup },
+    { link: "/admin/logs", label: "Logs", icon: IconList },
+  ];
 
   const links = data.map((item) => (
     <a
