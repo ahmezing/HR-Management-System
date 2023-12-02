@@ -42,11 +42,56 @@ export default function EmployeesTable({
   const endIndex = startIndex + itemsPerPage;
   const paginatedEmployees = employees.slice(startIndex, endIndex);
   const [opened, { open, close }] = useDisclosure(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
 
   const openEditModal = (employee: Employee) => {
     setSelectedEmployee(employee);
     open();
   };
+
+  function isWithinNextThreeMonths(
+    date: Date | string | null | undefined
+  ): boolean {
+    if (!date) {
+      return false; // Handle null or undefined date cases
+    }
+
+    const parsedDate = typeof date === "string" ? new Date(date) : date;
+
+    if (!(parsedDate instanceof Date && !isNaN(parsedDate.getTime()))) {
+      return false; // Handle cases where date couldn't be parsed properly
+    }
+
+    const currentDate = new Date();
+    const threeMonthsFromNow = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 6,
+      currentDate.getDate()
+    );
+
+    // Get the time in milliseconds since the epoch for both dates
+    const currentDateTimestamp = Date.UTC(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+    const threeMonthsFromNowTimestamp = Date.UTC(
+      threeMonthsFromNow.getFullYear(),
+      threeMonthsFromNow.getMonth(),
+      threeMonthsFromNow.getDate()
+    );
+    const dateTimestamp = Date.UTC(
+      parsedDate.getFullYear(),
+      parsedDate.getMonth(),
+      parsedDate.getDate()
+    );
+
+    return (
+      dateTimestamp > currentDateTimestamp &&
+      dateTimestamp <= threeMonthsFromNowTimestamp
+    );
+  }
 
   async function confirmEdit(employee: Employee) {
     const updatedEmployee: Partial<Employee> = { id: employee.id }; // Create a partial object to hold updated values
@@ -113,6 +158,20 @@ export default function EmployeesTable({
     fetchEmployees();
   }, [selectedEmployee]);
 
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredEmployees(employees); // Display all employees when search is empty
+    } else {
+      const searchTerm = searchQuery.toLowerCase().trim();
+      const filtered = employees.filter((employee) =>
+        `${employee.first_name.toLowerCase()} ${employee.last_name.toLowerCase()}`.includes(
+          searchTerm
+        )
+      );
+      setFilteredEmployees(filtered);
+    }
+  }, [searchQuery, employees]);
+
   if (showNotification) {
     console.log("Notification shown");
     notifications.show({
@@ -130,6 +189,20 @@ export default function EmployeesTable({
           className="mx-auto mt-5 max-w-2xl grid-cols-1 gap-y-16 border-t border-gray-200 pt-2 sm:mt-4 sm:pt-8 lg:mx-0 lg:max-w-none
               w-full"
         >
+          <div className="flex justify-end mb-4">
+            <TextInput
+              placeholder="Search by name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full max-w-md
+          border-gray-500
+          focus:border-blue-500
+          focus:ring-blue-500
+          text-base
+          sm:text-sm
+          "
+            />
+          </div>
           <Table striped highlightOnHover withBorder withColumnBorders>
             <thead>
               <tr>
@@ -146,7 +219,15 @@ export default function EmployeesTable({
               </tr>
             </thead>
             <tbody>
-              {paginatedEmployees.map((employee) => (
+              {filteredEmployees.length === 0 && searchQuery.trim() !== "" && (
+                <tr>
+                  <td colSpan={10} className="text-center py-4">
+                    No results found
+                  </td>
+                </tr>
+              )}
+
+              {filteredEmployees.map((employee) => (
                 <tr key={employee.id}>
                   <td>{employee.first_name + " " + employee.last_name}</td>
                   <td>{employee.position}</td>
@@ -155,8 +236,24 @@ export default function EmployeesTable({
                   <td>{employee.date_of_birth.toLocaleString()}</td>
                   <td>{employee.employee_since.toLocaleString()}</td>
                   <td>{employee.id_number}</td>
-                  <td>{employee.contract_expiry.toLocaleString()}</td>
-                  <td>{employee.id_expiry_date.toLocaleString()}</td>
+                  <td
+                    className={
+                      isWithinNextThreeMonths(employee.contract_expiry)
+                        ? "text-red-500"
+                        : ""
+                    }
+                  >
+                    {employee.contract_expiry.toLocaleString()}
+                  </td>
+                  <td
+                    className={
+                      isWithinNextThreeMonths(employee.id_expiry_date)
+                        ? "text-red-500"
+                        : ""
+                    }
+                  >
+                    {employee.id_expiry_date.toLocaleString()}
+                  </td>
 
                   <td>
                     <div className="flex items-center space-x-4">
