@@ -167,17 +167,17 @@ export default function EmployeesTable({
     const updatedEmployee: Partial<Employee> = { id: employee.id }; // Create a partial object to hold updated values
 
     // Check each field and update the employee object if the value is not null or empty
-    if (firstName && firstName !== "") updatedEmployee.first_name = firstName;
-    if (lastName && lastName !== "") updatedEmployee.last_name = lastName;
-    if (employeeSince) updatedEmployee.employee_since = employeeSince;
-    if (idNumber && idNumber !== "") updatedEmployee.id_number = idNumber;
-    if (dateOfBirth) updatedEmployee.date_of_birth = dateOfBirth;
-    if (idExpiryDate) updatedEmployee.id_expiry_date = idExpiryDate;
-    if (salary && salary !== 0) updatedEmployee.salary = salary;
-    if (position && position !== "") updatedEmployee.position = position;
-    if (nationality && nationality !== "")
-      updatedEmployee.nationality = nationality;
-    if (contractExpiry) updatedEmployee.contract_expiry = contractExpiry;
+
+    firstName && firstName !== "" ? updatedEmployee.first_name = firstName: updatedEmployee.first_name = employee.first_name;
+    lastName && lastName !== "" ? updatedEmployee.last_name = lastName: updatedEmployee.last_name = employee.last_name;
+    employeeSince ? updatedEmployee.employee_since = employeeSince: updatedEmployee.employee_since = employee.employee_since;
+    idNumber && idNumber !== "" ? updatedEmployee.id_number = idNumber: updatedEmployee.id_number = employee.id_number;
+    dateOfBirth ? updatedEmployee.date_of_birth = dateOfBirth: updatedEmployee.date_of_birth = employee.date_of_birth;
+    idExpiryDate ? updatedEmployee.id_expiry_date = idExpiryDate: updatedEmployee.id_expiry_date = employee.id_expiry_date;
+    salary && salary !== 0 ? updatedEmployee.salary = salary: updatedEmployee.salary = employee.salary;
+    nationality && nationality !== '' ? updatedEmployee.nationality = nationality: updatedEmployee.nationality = employee.nationality;
+    position && position !== '' ? updatedEmployee.position = position: updatedEmployee.position = employee.position;
+    contractExpiry ? updatedEmployee.contract_expiry = contractExpiry: updatedEmployee.contract_expiry = employee.contract_expiry;
 
     const changes: string[] = [];
     // Compare the properties of updatedEmployee and employee to identify changes
