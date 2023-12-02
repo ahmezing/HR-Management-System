@@ -9,7 +9,8 @@ import { Notifications } from "@mantine/notifications";
 import Head from "next/head";
 import type { AppProps } from "next/app";
 import { supabase } from "@/utils/supabase";
-import Layout from "@/components/Layout";
+import Layout from "@/components/assistant/Layout";
+import AdminLayout from "@/components/admin/AdminLayout";
 
 function MyApp({
   Component,
@@ -31,8 +32,20 @@ function MyApp({
 
       if ((!user || error) && !["/auth/login"].includes(router.pathname)) {
         router.push("/auth/login");
-      } else if (user && !error && ["/auth/login"].includes(router.pathname)) {
+      } else if (
+        user &&
+        !user.user?.user_metadata?.is_admin === true &&
+        ["/auth/login", "/admin", "/admin/assistants", "/admin/logs"].includes(
+          router.pathname
+        )
+      ) {
         router.push("/");
+      } else if (
+        user &&
+        user.user?.user_metadata?.is_admin === true &&
+        ["/auth/login", "/"].includes(router.pathname)
+      ) {
+        router.push("/admin");
       }
     };
 
@@ -64,10 +77,10 @@ function MyApp({
             <Component {...pageProps} />
           </Layout>
         ) : applyAdminLayout ? (
-          // <AdminLayout>
-          <Component {...pageProps} />
+          <AdminLayout>
+            <Component {...pageProps} />
+          </AdminLayout>
         ) : (
-          // </AdminLayout>
           <Component {...pageProps} />
         )}
       </MantineProvider>
