@@ -78,7 +78,6 @@ export default function EmployeesTable({
     }
 
     if (changes.length === 0) {
-      console.log("No changes were made");
       setNotification({
         title: "Error",
         message: "No changes were made",
@@ -86,7 +85,7 @@ export default function EmployeesTable({
       });
     } else {
       console.log(`Changes made on ${new Date().toLocaleDateString()}:`);
-      changes.forEach((change) => console.log(change));
+      // changes.forEach((change) => console.log(change));
 
       // Merge the updated fields into a new object and update selectedEmployee
       const updatedSelectedEmployee = {
@@ -112,7 +111,6 @@ export default function EmployeesTable({
   useEffect(() => {
     // Fetch employees
     fetchEmployees();
-    console.log("Employees fetched");
   }, [selectedEmployee]);
 
   if (showNotification) {
