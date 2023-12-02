@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Employee } from "../models/Employee";
-import EmployeesTable from "../components/EmployeesTable";
+import { Employee } from "@/models/Employee";
+import EmployeesTable from "@/components/EmployeesTable";
 import { Loader } from "@mantine/core";
 import { useSession } from "@supabase/auth-helpers-react";
 import { getAllEmployees } from "@/server/employee";
@@ -15,8 +15,6 @@ const HomePage = () => {
 
   const fetchEmployees = async () => {
     const employees = await getAllEmployees();
-    const assistant = await getAssistantById(session!.user.id);
-    setAssistant(assistant);
     setEmployees(employees);
     setLoading(false);
   };
@@ -40,11 +38,11 @@ const HomePage = () => {
       <main className="w-full">
         <div className="flex justify-center items-center h-24">
           <h1 className="text-4xl text-gray-700">
-            Welcome {assistant?.first_name} {assistant?.last_name}
+            Admin Dashboard
           </h1>
         </div>
 
-        <EmployeesTable employees={employees} fetchEmployees={fetchEmployees} assistant={assistant || null} />
+        <EmployeesTable employees={employees} fetchEmployees={fetchEmployees} assistant={null} />
       </main>
     </div>
   );
