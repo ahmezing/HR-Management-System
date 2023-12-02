@@ -64,3 +64,16 @@ export async function addEmployee(
 
   return data;
 }
+
+export async function deleteEmployee(id: string) {
+  const { data, error } = await supabase
+    .from("employees")
+    .delete()
+    .eq("id", id);
+    
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}

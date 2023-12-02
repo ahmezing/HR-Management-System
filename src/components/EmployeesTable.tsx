@@ -6,14 +6,19 @@ import { Employee } from "@/models/Employee";
 import { useDisclosure } from "@mantine/hooks";
 import { DatePickerInput } from "@mantine/dates";
 import { NumberInput, TextInput } from "@mantine/core";
-import { updateEmployee, addEmployee } from "@/server/employee";
+import { updateEmployee, addEmployee, deleteEmployee } from "@/server/employee";
+import { Assistant } from "@/models/Assistant";
+import { addLog } from "@/server/logs";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function EmployeesTable({
   employees,
   fetchEmployees,
+  assistant,
 }: {
   employees: Employee[];
   fetchEmployees: () => void;
+  assistant: Assistant | null;
 }) {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
@@ -38,13 +43,12 @@ export default function EmployeesTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [showNotification, setShowNotification] = useState(false);
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(employees.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedEmployees = employees.slice(startIndex, endIndex);
   const [opened, { open, close }] = useDisclosure(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
 
   const openEditModal = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -59,6 +63,48 @@ export default function EmployeesTable({
 
   const closeAddModal = () => {
     setShowAddModal(false);
+  };
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const openDeleteModal = () => {
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+  };
+
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+
+  const openConfirmationModal = () => {
+    setIsConfirmationModalOpen(true);
+  };
+
+  const closeConfirmationModal = () => {
+    setIsConfirmationModalOpen(false);
+    openDeleteModal();
+  };
+
+  const removeEmployee = async (employee: Employee) => {
+    try {
+      await deleteEmployeeLog(employee);
+      await deleteEmployee(employee.id);
+      setNotification({
+        title: "Success",
+        message: "Employee deleted successfully",
+        color: "blue",
+      });
+    } catch (error) {
+      setNotification({
+        title: "Error",
+        message: "Employee could not be deleted",
+        color: "red",
+      });
+    }
+    setShowNotification(true);
+    await fetchEmployees();
+    closeDeleteModal();
   };
 
   function isWithinNextThreeMonths(
@@ -99,9 +145,22 @@ export default function EmployeesTable({
     );
 
     return (
-      dateTimestamp > currentDateTimestamp &&
-      dateTimestamp <= threeMonthsFromNowTimestamp
+      (dateTimestamp > currentDateTimestamp &&
+        dateTimestamp <= threeMonthsFromNowTimestamp) ||
+      dateTimestamp < currentDateTimestamp
     );
+  }
+
+  async function addEmployeeLog(changesLog: string) {
+    try {
+      const updatedLog = {
+        user_id: session?.user?.id,
+        log: changesLog,
+      };
+      await addLog(updatedLog);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async function confirmEdit(employee: Employee) {
@@ -142,8 +201,22 @@ export default function EmployeesTable({
         color: "yellow",
       });
     } else {
-      console.log(`Changes made on ${new Date().toLocaleDateString()}:`);
-      // changes.forEach((change) => console.log(change));
+      let changesLog = `Changes made for employee: ${
+        updatedEmployee?.first_name
+      } ${updatedEmployee?.last_name} on ${new Date()}:\n`;
+
+      changes.forEach((change) => {
+        changesLog += `${change}\n`;
+      });
+
+      // Check if 'assistant' exists to determine who made the update
+      if (assistant) {
+        changesLog += `Updated by ${assistant.first_name} ${assistant.last_name}\n`;
+      } else {
+        changesLog += `Updated by Admin\n`;
+      }
+
+      await addEmployeeLog(changesLog);
 
       // Merge the updated fields into a new object and update selectedEmployee
       const updatedSelectedEmployee = {
@@ -163,7 +236,44 @@ export default function EmployeesTable({
     }
 
     setShowNotification(true);
+    await fetchEmployees();
     close();
+  }
+
+  async function newEmployeeLog(employee: Partial<Employee>) {
+    let changesLog = `A new employee: ${employee.first_name} ${
+      employee.last_name
+    } was added on ${new Date()}:\n`;
+
+    changesLog += `Added by Admin\n`;
+
+    try {
+      const updatedLog = {
+        user_id: session?.user?.id,
+        log: changesLog,
+      };
+      await addLog(updatedLog);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function deleteEmployeeLog(employee: Partial<Employee>) {
+    let changesLog = `Employee: ${employee.first_name} ${
+      employee.last_name
+    } was removed on ${new Date()}:\n`;
+
+    changesLog += `Removed by Admin\n`;
+
+    try {
+      const updatedLog = {
+        user_id: session?.user?.id,
+        log: changesLog,
+      };
+      await addLog(updatedLog);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   const confirmAdd = async () => {
@@ -183,6 +293,7 @@ export default function EmployeesTable({
 
     try {
       await addEmployee(employee);
+      await newEmployeeLog(employee);
       setNotification({
         title: "Success",
         message: "Employee added successfully",
@@ -201,6 +312,7 @@ export default function EmployeesTable({
 
   useEffect(() => {
     // Fetch employees
+
     fetchEmployees();
   }, [selectedEmployee]);
 
@@ -219,7 +331,6 @@ export default function EmployeesTable({
   }, [searchQuery, employees]);
 
   if (showNotification) {
-    console.log("Notification shown");
     notifications.show({
       title: notification.title,
       message: notification.message,
@@ -255,7 +366,13 @@ export default function EmployeesTable({
               />
             </div>
           </div>
-          <Table striped highlightOnHover withBorder withColumnBorders>
+          <Table
+            striped
+            highlightOnHover
+            withBorder
+            withColumnBorders
+            className="overflow-x-auto"
+          >
             <thead>
               <tr>
                 <th>Name</th>
@@ -279,7 +396,7 @@ export default function EmployeesTable({
                 </tr>
               )}
 
-              {filteredEmployees.map((employee) => (
+              {filteredEmployees.slice(startIndex, endIndex).map((employee) => (
                 <tr key={employee.id}>
                   <td>{employee.first_name + " " + employee.last_name}</td>
                   <td>{employee.position}</td>
@@ -319,7 +436,7 @@ export default function EmployeesTable({
                       </Button>
                       {session?.user?.user_metadata?.is_admin === true && (
                         <Button
-                          onClick={() => {}}
+                          onClick={() => openDeleteModal()}
                           className="
                             bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded
                         "
@@ -548,6 +665,35 @@ export default function EmployeesTable({
             >
               Confirm
             </Button>
+          </Modal>
+
+          <Modal
+            opened={showDeleteModal}
+            onClose={closeDeleteModal}
+            title="Delete Employee"
+            centered
+          >
+            <div className="flex justify-center items-center h-24">
+              <h1 className="text-gray-700">
+                Are you sure you want to delete this employee?
+              </h1>
+            </div>
+
+            <div className="flex justify-center items-center h-24">
+              <Button
+                onClick={() => {
+                  openConfirmationModal();
+                }}
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Delete
+              </Button>
+            </div>
+            <ConfirmationModal
+              onConfirm={() => removeEmployee(selectedEmployee!)}
+              isOpen={isConfirmationModalOpen}
+              onClose={closeConfirmationModal}
+            />
           </Modal>
 
           <div className="flex justify-center mt-4">

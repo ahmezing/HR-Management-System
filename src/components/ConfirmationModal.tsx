@@ -1,4 +1,4 @@
-import { Modal, Button, Text, Paper} from "@mantine/core";
+import { Modal, Button, Text, Paper } from "@mantine/core";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -21,24 +21,30 @@ export default function ConfirmationModal({
   };
 
   return (
-    <Modal opened={isOpen} onClose={closeModal} title="Confirm" size="md">
-      <Text component="h2" weight={500} size="xl" className="mb-2">
-      </Text>
-      <Paper className="mb-4">
-        <Text component="p" size="md" color="black">
-          Are you sure you want to perform this action?
+    <Modal opened={isOpen} onClose={closeModal} title="Confirmation" size="sm">
+      <div className="p-6">
+        <Text align="center" size="lg" weight={700} className="mb-4">
+          Confirm Action
         </Text>
-      </Paper>
-      <div className="flex justify-end">
-        <Button
-          className="bg-red-500 mr-2 hover:bg-red-600"
-          onClick={confirmAction}
-        >
-          Confirm
-        </Button>
-        <Button className="bg-blue-500 hover:bg-blue-600" onClick={closeModal}>
-          Cancel
-        </Button>
+        <Paper shadow="sm" className="mb-4">
+          <Text align="center" size="sm" color="gray">
+            Are you sure you want to perform this action? This action cannot be undone.
+          </Text>
+        </Paper>
+        <div className="flex justify-end">
+          <Button
+            className="bg-red-500 text-white hover:bg-red-600 mr-2"
+            onClick={confirmAction}
+          >
+            Confirm
+          </Button>
+          <Button
+            className="bg-blue-500 text-white hover:bg-blue-600"
+            onClick={closeModal}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
     </Modal>
   );
