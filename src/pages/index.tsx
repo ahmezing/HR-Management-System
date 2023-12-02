@@ -25,7 +25,7 @@ const HomePage = () => {
     if (!session) return;
 
     fetchEmployees();
-  }, []);
+  }, [session, loading]);
 
   if (loading) {
     return (
