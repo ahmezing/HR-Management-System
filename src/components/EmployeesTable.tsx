@@ -6,7 +6,7 @@ import { Employee } from "@/models/Employee";
 import { useDisclosure } from "@mantine/hooks";
 import { DatePickerInput } from "@mantine/dates";
 import { NumberInput, TextInput } from "@mantine/core";
-import { updateEmployee } from "@/server/employee";
+import { updateEmployee, addEmployee } from "@/server/employee";
 
 export default function EmployeesTable({
   employees,
@@ -26,6 +26,7 @@ export default function EmployeesTable({
   const [idExpiryDate, setIdExpiryDate] = useState<Date | null>(null);
   const [salary, setSalary] = useState<number>(0);
   const [position, setPosition] = useState("");
+  const [nationality, setNationality] = useState("");
   const [contractExpiry, setContractExpiry] = useState<Date | null>(null);
 
   const session = useSession();
@@ -48,6 +49,16 @@ export default function EmployeesTable({
   const openEditModal = (employee: Employee) => {
     setSelectedEmployee(employee);
     open();
+  };
+
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const openAddModal = () => {
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
   };
 
   function isWithinNextThreeMonths(
@@ -105,6 +116,8 @@ export default function EmployeesTable({
     if (idExpiryDate) updatedEmployee.id_expiry_date = idExpiryDate;
     if (salary && salary !== 0) updatedEmployee.salary = salary;
     if (position && position !== "") updatedEmployee.position = position;
+    if (nationality && nationality !== "")
+      updatedEmployee.nationality = nationality;
     if (contractExpiry) updatedEmployee.contract_expiry = contractExpiry;
 
     const changes: string[] = [];
@@ -153,6 +166,39 @@ export default function EmployeesTable({
     close();
   }
 
+  const confirmAdd = async () => {
+    //create new employee object from the setters and add it to the database
+    const employee: Partial<Employee> = {
+      first_name: firstName,
+      last_name: lastName,
+      employee_since: employeeSince!,
+      id_number: idNumber,
+      date_of_birth: dateOfBirth!,
+      id_expiry_date: idExpiryDate!,
+      salary: salary,
+      nationality: nationality,
+      position: position,
+      contract_expiry: contractExpiry!,
+    };
+
+    try {
+      await addEmployee(employee);
+      setNotification({
+        title: "Success",
+        message: "Employee added successfully",
+        color: "blue",
+      });
+    } catch (error) {
+      setNotification({
+        title: "Error",
+        message: "Employee could not be added",
+        color: "red",
+      });
+    }
+    setShowNotification(true);
+    closeAddModal();
+  };
+
   useEffect(() => {
     // Fetch employees
     fetchEmployees();
@@ -189,19 +235,25 @@ export default function EmployeesTable({
           className="mx-auto mt-5 max-w-2xl grid-cols-1 gap-y-16 border-t border-gray-200 pt-2 sm:mt-4 sm:pt-8 lg:mx-0 lg:max-w-none
               w-full"
         >
-          <div className="flex justify-end mb-4">
-            <TextInput
-              placeholder="Search by name"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full max-w-md
-          border-gray-500
-          focus:border-blue-500
-          focus:ring-blue-500
-          text-base
-          sm:text-sm
-          "
-            />
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              {session?.user?.user_metadata?.is_admin === true && (
+                <Button
+                  onClick={openAddModal}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Add Employee
+                </Button>
+              )}
+            </div>
+            <div>
+              <TextInput
+                placeholder="Search by name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full max-w-md border-gray-500 focus:border-blue-500 focus:ring-blue-500 text-base sm:text-sm"
+              />
+            </div>
           </div>
           <Table striped highlightOnHover withBorder withColumnBorders>
             <thead>
@@ -305,6 +357,14 @@ export default function EmployeesTable({
             />
 
             <TextInput
+              label="Nationality"
+              placeholder={selectedEmployee?.nationality}
+              variant="filled"
+              className="mb-4"
+              onChange={(e) => setNationality(e.target.value)}
+            />
+
+            <TextInput
               label="ID Number"
               placeholder={selectedEmployee?.id_number}
               variant="filled"
@@ -373,6 +433,118 @@ export default function EmployeesTable({
               className="
                 bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded
             "
+            >
+              Confirm
+            </Button>
+          </Modal>
+
+          <Modal
+            opened={showAddModal}
+            onClose={closeAddModal}
+            title="Add New Employee"
+            centered
+          >
+            <TextInput
+              label="First Name"
+              placeholder="First Name"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+
+            <TextInput
+              label="Last Name"
+              placeholder="Last Name"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setLastName(e.target.value)}
+            />
+
+            <TextInput
+              label="Nationality"
+              placeholder="Nationality"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setNationality(e.target.value)}
+            />
+
+            <TextInput
+              label="ID Number"
+              placeholder="ID Number"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setIdNumber(e.target.value)}
+            />
+
+            <TextInput
+              label="Position"
+              placeholder="Position"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setPosition(e.target.value)}
+            />
+
+            <DatePickerInput
+              label="Date of Birth"
+              placeholder="Date of Birth"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(date) => {
+                setDateOfBirth(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="Employee Since"
+              placeholder="Employee Since"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(date) => {
+                setEmployeeSince(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="ID Expiry Date"
+              placeholder="ID Expiry Date"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(date) => {
+                setIdExpiryDate(date);
+              }}
+            />
+
+            <DatePickerInput
+              label="Contract Expiry Date"
+              placeholder="Contract Expiry Date"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(date) => {
+                setContractExpiry(date);
+              }}
+            />
+
+            <NumberInput
+              label="Salary"
+              placeholder="Salary"
+              variant="filled"
+              className="mb-4"
+              required
+              onChange={(e) => setSalary(Number(e))}
+            />
+
+            <Button
+              onClick={() => confirmAdd()}
+              className="bg-green-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             >
               Confirm
             </Button>

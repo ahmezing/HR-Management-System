@@ -36,3 +36,31 @@ export async function updateEmployee(employee: Employee) {
 
   return data;
 }
+
+export async function addEmployee(
+  employee: Partial<Employee>
+) {
+  const { data, error } = await supabase
+    .from("employees")
+    .insert([
+      {
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        employee_since: employee.employee_since,
+        id_number: employee.id_number,
+        date_of_birth: employee.date_of_birth,
+        id_expiry_date: employee.id_expiry_date,
+        salary: employee.salary,
+        position: employee.position,
+        contract_expiry: employee.contract_expiry,
+        nationality: employee.nationality,
+      },
+    ])
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
