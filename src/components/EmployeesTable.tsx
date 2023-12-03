@@ -42,7 +42,7 @@ export default function EmployeesTable({
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [showNotification, setShowNotification] = useState(false);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const [opened, { open, close }] = useDisclosure(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -67,7 +67,8 @@ export default function EmployeesTable({
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const openDeleteModal = () => {
+  const openDeleteModal = (employee: Employee) => {
+    setSelectedEmployee(employee);
     setShowDeleteModal(true);
   };
 
@@ -83,7 +84,7 @@ export default function EmployeesTable({
 
   const closeConfirmationModal = () => {
     setIsConfirmationModalOpen(false);
-    openDeleteModal();
+    openDeleteModal(selectedEmployee!);
   };
 
   const removeEmployee = async (employee: Employee) => {
@@ -103,8 +104,9 @@ export default function EmployeesTable({
       });
     }
     setShowNotification(true);
-    await fetchEmployees();
+    fetchEmployees();
     closeDeleteModal();
+    clearStates();
   };
 
   function isWithinNextThreeMonths(
@@ -256,8 +258,9 @@ export default function EmployeesTable({
     }
 
     setShowNotification(true);
-    await fetchEmployees();
+    fetchEmployees();
     close();
+    clearStates();
   }
 
   async function newEmployeeLog(employee: Partial<Employee>) {
@@ -327,7 +330,9 @@ export default function EmployeesTable({
       });
     }
     setShowNotification(true);
+    fetchEmployees();
     closeAddModal();
+    clearStates();
   };
 
   useEffect(() => {
@@ -357,6 +362,19 @@ export default function EmployeesTable({
       color: notification.color,
     });
     setShowNotification(false);
+  }
+
+  const clearStates = () => {
+    setFirstName("");
+    setLastName("");
+    setEmployeeSince(null);
+    setIdNumber("");
+    setDateOfBirth(null);
+    setIdExpiryDate(null);
+    setSalary(0);
+    setNationality("");
+    setPosition("");
+    setContractExpiry(null);
   }
 
   return (
@@ -456,7 +474,7 @@ export default function EmployeesTable({
                       </Button>
                       {session?.user?.user_metadata?.is_admin === true && (
                         <Button
-                          onClick={() => openDeleteModal()}
+                          onClick={() => openDeleteModal(employee)}
                           className="
                             bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded
                         "
@@ -464,6 +482,11 @@ export default function EmployeesTable({
                           Delete
                         </Button>
                       )}
+                                  <ConfirmationModal
+              onConfirm={() => removeEmployee(employee)}
+              isOpen={isConfirmationModalOpen}
+              onClose={closeConfirmationModal}
+            />
                     </div>
                   </td>
                 </tr>
@@ -709,11 +732,6 @@ export default function EmployeesTable({
                 Delete
               </Button>
             </div>
-            <ConfirmationModal
-              onConfirm={() => removeEmployee(selectedEmployee!)}
-              isOpen={isConfirmationModalOpen}
-              onClose={closeConfirmationModal}
-            />
           </Modal>
 
           <div className="flex justify-center mt-4">

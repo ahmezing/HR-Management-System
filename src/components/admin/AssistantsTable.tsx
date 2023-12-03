@@ -197,6 +197,7 @@ export default function AssistantsTable({
     setShowNotification(true);
     fetchAssistants();
     close();
+    clearStates();
   }
 
   useEffect(() => {
@@ -226,6 +227,19 @@ export default function AssistantsTable({
       color: notification.color,
     });
     setShowNotification(false);
+  }
+
+  const clearStates = () => {
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setEmployeeSince(null);
+    setIdNumber("");
+    setDateOfBirth(null);
+    setIdExpiryDate(null);
+    setSalary(0);
+    setNationality("");
+    setContractExpiry(null);
   }
 
   return (
